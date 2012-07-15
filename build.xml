@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="jaxbtool" default="xml2xsd" basedir=".">
+
+    <property file="${basedir}/build.properties" />
+
+    <property name="xmlname" value="${xml.name}" />
+    <property name="xjc.removeoldoutput" value="no" />
+
+    <target name="xml2xsd" depends="-mkdirxsd">
+        <java jar="${lib.dir}/trang.jar" fork="true" failonerror="false">
+            <arg line="-I xml -O xsd ${xml.dir}/${xmlname}.xml ${xsd.dir}/${xmlname}.xsd" />
+        </java>
+    </target>
+
+	<target name="-mkdirxsd">
+	   <mkdir dir="${xsd.dir}" />
+	</target>
+	
+    <target name="replacexsd">
+        <replace dir="${xsd.dir}">
+            <include name="**/${xmlname}.xsd" />
+            <replacefilter token="${replace.xsd.before.string.1}" value="${replace.xsd.after.string}" />
+            <replacefilter token="${replace.xsd.before.string.2}" value="${replace.xsd.after.string}" />
+        </replace>
+    </target>
+
+    <!-- ********* SerializableなJAXBエンティティを出力したい場合、xml2xsdで生成されたxsdファイルに下記内容を適用
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+           xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+           jaxb:extensionBindingPrefixes="xjc"
+           jaxb:version="1.0"
+           elementFormDefault="qualified">
+  <xs:annotation>
+     <xs:appinfo>
+        <jaxb:globalBindings generateIsSetMethod="true">
+            <xjc:serializable />
+        </jaxb:globalBindings>
+     </xs:appinfo>
+  </xs:annotation>
+    .
+    .
+    .
+    -->
+
+    <taskdef name="xjc" classname="com.sun.tools.xjc.XJCTask">
+        <classpath>
+            <fileset dir="${lib.dir}" includes="*.jar" />
+        </classpath>
+    </taskdef>
+
+    <target name="xsd2java" depends="-mkdirsrc">
+        <xjc destdir="${src.dir}" removeOldOutput="${xjc.removeoldoutput}" package="${jaxb.package}" extension="true">
+            <schema dir="${xsd.dir}" includes="${xmlname}.xsd" />
+            <produces dir="${src.dir}/${jaxb.package.dir}" includes="**/*.java" />
+        </xjc>
+    </target>
+
+	<target name="-mkdirsrc">
+		<mkdir dir="${src.dir}" />
+	</target>
+	
+    <target name="all" depends="xml2xsd,replacexsd,xsd2java" />
+
+</project>
